@@ -20,9 +20,9 @@ CREATE TABLE type_transport (
   PRIMARY KEY (code_transport)
 );
 CREATE TABLE zone (
-  id_zone             SERIAL NOT NULL,
+  id_zone             SERIAL NOT NULL UNIQUE,
   price               FLOAT NOT NULL,
-  name_zone           VARCHAR(32),
+  name_zone           VARCHAR(32) NOT NULL UNIQUE,
   PRIMARY KEY (id_zone)
 );
 CREATE TABLE person (
@@ -37,7 +37,7 @@ CREATE TABLE person (
 );
 
 CREATE TABLE line (
-  code_line           VARCHAR(5) NOT NULL UNIQUE,
+  code_line           VARCHAR(3) NOT NULL UNIQUE,
   code_transport      VARCHAR(3) NOT NULL,
   PRIMARY KEY (code_line),
   FOREIGN KEY (code_transport) REFERENCES type_transport (code_transport)
@@ -47,7 +47,7 @@ CREATE TABLE station (
   name_station        VARCHAR(64) NOT NULL,
   town                VARCHAR(32) NOT NULL,
   code_transport      VARCHAR(3) NOT NULL,
-  id_zone             SERIAL NOT NULL,
+  id_zone             INTEGER,
   PRIMARY KEY (id_station),
   FOREIGN KEY (code_transport) REFERENCES type_transport(code_transport),
   FOREIGN KEY (id_zone) REFERENCES zone(id_zone)
@@ -74,7 +74,7 @@ CREATE TABLE offer (
   name_offer          VARCHAR(32) NOT NULL,
   price               FLOAT NOT NULL,
   nb_month            INTEGER NOT NULL,
-  id_zone             SERIAL NOT NULL,
+  id_zone             INTEGER NOT NULL,
   PRIMARY KEY (code_offer),
   FOREIGN KEY (id_zone) REFERENCES zone(id_zone)
 );
@@ -95,10 +95,11 @@ CREATE TABLE service (
   FOREIGN KEY (id_contrat) REFERENCES contrat(id_contrat)
 );
 CREATE TABLE contained (
+  id_contained        SERIAL NOT NULL,
   pos                 INTEGER NOT NULL,
   code_line           VARCHAR(5) NOT NULL,
   id_station          INTEGER NOT NULL,
-  PRIMARY KEY (pos),
+  PRIMARY KEY (id_contained),
   FOREIGN KEY (code_line) REFERENCES line (code_line),
   FOREIGN KEY (id_station) REFERENCES station (id_station)
 );

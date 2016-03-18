@@ -1,0 +1,105 @@
+DROP FUNCTION IF EXISTS add_transport_type(VARCHAR(3), VARCHAR(32), INT, INT);
+DROP FUNCTION IF EXISTS add_zone(VARCHAR(32), FLOAT);
+DROP FUNCTION IF EXISTS add_station(INT, VARCHAR(64), VARCHAR(32), INT, VARCHAR(3));
+DROP FUNCTION IF EXISTS add_line(VARCHAR(3), VARCHAR(3));
+DROP FUNCTION IF EXISTS add_station_to_line(INT, VARCHAR(3), INT);
+
+DROP VIEW IF EXISTS  view_transport_50_300_users CASCADE ;
+
+CREATE OR REPLACE FUNCTION add_transport_type(code VARCHAR(3), name VARCHAR (32), capacity INT, avg_interval INT)
+RETURNS BOOLEAN AS
+$$
+BEGIN
+  IF (add_transport_type.capacity < 0 AND add_transport_type.avg_interval < 0) THEN
+    RETURN false;
+  END IF;
+  INSERT INTO type_transport
+  VALUES (add_transport_type.code, add_transport_type.name, add_transport_type.capacity, add_transport_type.avg_interval);
+  RETURN true;
+  EXCEPTION WHEN others THEN
+    RETURN false;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION add_zone(name VARCHAR(32), price FLOAT)
+RETURNS BOOLEAN AS
+$$
+BEGIN
+  IF ( add_zone.price < 0) THEN 
+    RETURN false;
+  END IF; 
+  INSERT INTO zone
+  VALUES (DEFAULT, round(cast(add_zone.price as numeric), 2), add_zone.name);
+  RETURN true;
+  EXCEPTION WHEN others THEN
+  RETURN false;
+END;
+$$ language plpgsql;
+
+
+CREATE OR REPLACE FUNCTION add_station(id INT, name VARCHAR(64), town VARCHAR(32), zone INT, type VARCHAR(3))
+RETURNS BOOLEAN AS
+$$
+BEGIN
+
+  INSERT INTO station
+  VALUES (add_station.id, add_station.name, add_station.town, add_station.type, add_station.zone);
+  RETURN true;
+  EXCEPTION WHEN others THEN
+  RETURN false;
+END;
+$$ language plpgsql;
+
+
+CREATE OR REPLACE FUNCTION add_line(code VARCHAR(3), type VARCHAR(3))
+RETURNS BOOLEAN AS
+$$
+BEGIN
+  INSERT INTO line
+  VALUES (add_line.code, add_line.type);
+  RETURN true;
+  EXCEPTION WHEN others THEN
+  RETURN false;
+
+END
+$$ language plpgsql;
+
+CREATE OR REPLACE FUNCTION add_station_to_line(station INT, line VARCHAR(3), pos INT)
+RETURNS BOOLEAN AS
+$$
+BEGIN
+PERFORM * FROM contained 
+          WHERE (contained.id_station = add_station_to_line.station
+          AND   contained.code_line = add_station_to_line.line)
+          OR    (contained.pos = add_station_to_line.pos
+          AND   contained.code_line = add_station_to_line.line);
+IF (FOUND = true) THEN
+  RETURN false;
+END IF;
+INSERT INTO contained
+VALUES (DEFAULT, add_station_to_line.pos, add_station_to_line.line, add_station_to_line.station);
+RETURN true;
+EXCEPTION WHEN others THEN
+  RETURN false;
+END
+$$ language plpgsql;
+
+
+CREATE OR REPLACE view view_transport_50_300_users AS
+
+SELECT name FROM type_transport WHERE capacity >= 50 AND capacity <= 300 ORDER BY name;
+
+
+CREATE OR REPLACE view view_stations_from_villejuif AS
+
+SELECT name_station FROM station WHERE town = 'Villejuif' ORDER BY name_station;
+
+
+CREATE OR REPLACE view view_stations_zones AS
+
+SELECT name_station, name_zone FROM station JOIN zone ON station.id_zone = zone.id_zone ORDER BY name_zone, name_station;
+
+
+CREATE OR REPLACE view view_nb_station_type AS
+
+SELECT type_transport.name, count(station.id_station) FROM type_transport, station GROUP BY type_transport.name, station.id_station;
