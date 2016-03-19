@@ -6,6 +6,7 @@ DROP FUNCTION IF EXISTS add_station_to_line(INT, VARCHAR(3), INT);
 
 DROP VIEW IF EXISTS  view_transport_50_300_users CASCADE ;
 DROP VIEW IF EXISTS  view_nb_station_type CASCADE ;
+DROP VIEW IF EXISTS  view_line_duration CASCADE ;
 CREATE OR REPLACE FUNCTION add_transport_type(code VARCHAR(3), name VARCHAR (32), capacity INT, avg_interval INT)
 RETURNS BOOLEAN AS
 $$
@@ -103,3 +104,9 @@ SELECT name_station, name_zone FROM station JOIN zone ON station.id_zone = zone.
 CREATE OR REPLACE view view_nb_station_type(type, station) AS
 
 SELECT type_transport.name, count(station.id_station) FROM type_transport, station WHERE type_transport.code_transport = station.code_transport GROUP BY type_transport.name ORDER BY count(station.id_station) DESC , type_transport.name;
+
+CREATE OR REPLACE view view_line_duration(type, line, minutes) AS
+
+SELECT type_transport.name, line.code_line, count(contained.id_station - 1) * type_transport.avg_interval FROM line
+JOIN  type_transport ON type_transport.code_transport = line.code_transport
+JOIN contained ON line.code_line = contained.code_line GROUP BY line.code_line, type_transport.code_transport, type_transport.avg_interval;
