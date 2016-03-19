@@ -7,6 +7,10 @@ DROP FUNCTION IF EXISTS add_station_to_line(INT, VARCHAR(3), INT);
 DROP VIEW IF EXISTS  view_transport_50_300_users CASCADE ;
 DROP VIEW IF EXISTS  view_nb_station_type CASCADE ;
 DROP VIEW IF EXISTS  view_line_duration CASCADE ;
+DROP VIEW IF EXISTS  view_a_station_capacity CASCADE ;
+
+DROP FUNCTION IF EXISTS list_station_in_line(VARCHAR(3));
+
 CREATE OR REPLACE FUNCTION add_transport_type(code VARCHAR(3), name VARCHAR (32), capacity INT, avg_interval INT)
 RETURNS BOOLEAN AS
 $$
@@ -104,9 +108,29 @@ SELECT name_station, name_zone FROM station JOIN zone ON station.id_zone = zone.
 CREATE OR REPLACE view view_nb_station_type(type, station) AS
 
 SELECT type_transport.name, count(station.id_station) FROM type_transport, station WHERE type_transport.code_transport = station.code_transport GROUP BY type_transport.name ORDER BY count(station.id_station) DESC , type_transport.name;
-
+ 
 CREATE OR REPLACE view view_line_duration(type, line, minutes) AS
 
 SELECT type_transport.name, line.code_line, count(contained.id_station - 1) * type_transport.avg_interval FROM line
 JOIN  type_transport ON type_transport.code_transport = line.code_transport
-JOIN contained ON line.code_line = contained.code_line GROUP BY line.code_line, type_transport.code_transport, type_transport.avg_interval;
+JOIN contained ON line.code_line = contained.code_line GROUP BY type_transport.name, line.code_line, type_transport.avg_interval;
+
+
+CREATE OR REPLACE view view_a_station_capacity(station, capacity) AS
+
+SELECT name_station, capacity FROM station, type_transport WHERE LEFT(name_station, 1) = 'r' AND type_transport.code_transport = station.code_transport GROUP BY station.name_station, type_transport.capacity;
+
+
+
+CREATE OR REPLACE FUNCTION list_station_in_line(line_code VARCHAR(3))
+RETURNS setof VARCHAR(32) AS
+$$
+BEGIN
+for list_station_in_line.line_code in SELECT name_station FROM station
+JOIN contained ON contained.id_station = station.id_station ORDER BY contained.pos
+LOOP
+RETURN NEXT 'coc';
+END LOOP;
+RETURN;
+END;
+$$ language plpgsql;
