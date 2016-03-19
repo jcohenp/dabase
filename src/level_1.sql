@@ -11,6 +11,7 @@ DROP VIEW IF EXISTS  view_a_station_capacity CASCADE ;
 
 DROP FUNCTION IF EXISTS list_station_in_line(VARCHAR(3));
 DROP FUNCTION IF EXISTS list__type_in_zone(INT);
+DROP FUNCTION IF EXISTS get_cost_travel(INT, INT);
 
 CREATE OR REPLACE FUNCTION add_transport_type(code VARCHAR(3), name VARCHAR (32), capacity INT, avg_interval INT)
 RETURNS BOOLEAN AS
@@ -151,5 +152,30 @@ LOOP
 RETURN NEXT string;
 END LOOP;
 RETURN;
+END;
+$$ language plpgsql;
+
+
+CREATE OR REPLACE FUNCTION get_cost_travel(station_start INT, station_end INT)
+RETURNS FLOAT AS
+$$
+DECLARE
+
+  station_end_ FLOAT := (SELECT  zone.price FROM zone
+  JOIN station ON station.id_station = get_cost_travel.station_end AND station.id_zone = zone.id_zone);
+
+  station_start_ FLOAT := (SELECT zone.price FROM zone
+  JOIN station ON station.id_station = get_cost_travel.station_start AND station.id_zone = zone.id_zone);
+
+
+
+BEGIN
+
+IF ($1 != $2) THEN
+  RETURN station_start_ + station_end_;
+END IF;
+  RETURN 0;
+EXCEPTION WHEN others THEN
+RETURN 0;
 END;
 $$ language plpgsql;
