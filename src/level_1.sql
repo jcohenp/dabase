@@ -10,6 +10,7 @@ DROP VIEW IF EXISTS  view_line_duration CASCADE ;
 DROP VIEW IF EXISTS  view_a_station_capacity CASCADE ;
 
 DROP FUNCTION IF EXISTS list_station_in_line(VARCHAR(3));
+DROP FUNCTION IF EXISTS list__type_in_zone(INT);
 
 CREATE OR REPLACE FUNCTION add_transport_type(code VARCHAR(3), name VARCHAR (32), capacity INT, avg_interval INT)
 RETURNS BOOLEAN AS
@@ -125,11 +126,29 @@ SELECT name_station, capacity FROM station, type_transport WHERE LEFT(name_stati
 CREATE OR REPLACE FUNCTION list_station_in_line(line_code VARCHAR(3))
 RETURNS setof VARCHAR(32) AS
 $$
+DECLARE
+  string VARCHAR(32);
 BEGIN
-for list_station_in_line.line_code in SELECT name_station FROM station
-JOIN contained ON contained.id_station = station.id_station ORDER BY contained.pos
+for string in SELECT name_station FROM station
+JOIN contained ON contained.id_station = station.id_station AND  list_station_in_line.line_code = contained.code_line ORDER BY contained.pos
 LOOP
-RETURN NEXT 'coc';
+RETURN NEXT string;
+END LOOP;
+RETURN;
+END;
+$$ language plpgsql;
+
+CREATE OR REPLACE FUNCTION list_type_in_zone(zone INT)
+RETURNS setof VARCHAR(32) AS
+$$
+DECLARE
+  string VARCHAR(32);
+BEGIN
+for string in SELECT name FROM zone
+JOIN station ON station.id_zone = zone.id_zone
+JOIN type_transport ON zone.id_zone = list_type_in_zone.zone GROUP BY  station.id_zone, type_transport.name ORDER BY type_transport.name
+LOOP
+RETURN NEXT string;
 END LOOP;
 RETURN;
 END;
