@@ -27,7 +27,7 @@ CREATE TABLE zone (
 );
 CREATE TABLE person (
   email               VARCHAR(128) NOT NULL UNIQUE,
-  firsname            VARCHAR(32) NOT NULL,
+  firstname            VARCHAR(32) NOT NULL,
   lastname            VARCHAR(32) NOT NULL,
   phone               VARCHAR(10) NOT NULL,
   address             TEXT NOT NULL,
@@ -71,29 +71,30 @@ CREATE TABLE journey (
 );
 CREATE TABLE offer (
   code_offer          VARCHAR(5) NOT NULL UNIQUE,
-  name_offer          VARCHAR(32) NOT NULL,
+  name_offer          VARCHAR(32) NOT NULL UNIQUE,
   price               FLOAT NOT NULL,
   nb_month            INTEGER NOT NULL,
-  id_zone             INTEGER NOT NULL,
+  id_zone             INTEGER,
   PRIMARY KEY (code_offer),
   FOREIGN KEY (id_zone) REFERENCES zone(id_zone)
+);
+CREATE TABLE service (
+  id_service          SERIAL NOT NULL,
+  name_service        VARCHAR(32) NOT NULL UNIQUE,
+  discount            FLOAT NOT NULL,
+  PRIMARY KEY (id_service)
 );
 CREATE TABLE contrat (
   id_contrat          SERIAL NOT NULL,
   hire_date           DATE NOT NULL,
   departure_date      DATE,
   email               VARCHAR(128) NOT NULL,
-  PRIMARY KEY (id_contrat),
-  FOREIGN KEY (email) REFERENCES person(email)
-);
-CREATE TABLE service (
   id_service          SERIAL NOT NULL,
-  name_service        VARCHAR(32) NOT NULL,
-  discount            FLOAT NOT NULL,
-  id_contrat          SERIAL NOT NULL,
-  PRIMARY KEY (id_service),
-  FOREIGN KEY (id_contrat) REFERENCES contrat(id_contrat)
+  PRIMARY KEY (id_contrat),
+  FOREIGN KEY (email) REFERENCES person(email),
+  FOREIGN KEY (id_service) REFERENCES service(id_service)
 );
+
 CREATE TABLE contained (
   id_contained        SERIAL NOT NULL,
   pos                 INTEGER NOT NULL,
@@ -104,11 +105,12 @@ CREATE TABLE contained (
   FOREIGN KEY (id_station) REFERENCES station (id_station)
 );
 CREATE TABLE subscription (
-  register            INTEGER NOT NULL,
+  id_subscription     SERIAL NOT NULL UNIQUE,
+  register            VARCHAR(32),
   date_hire           DATE NOT NULL,
   email               VARCHAR(128) NOT NULL,
   code_offer          VARCHAR(5) NOT NULL,
-  PRIMARY KEY (register),
+  PRIMARY KEY (id_subscription),
   FOREIGN KEY (email) REFERENCES person(email),
   FOREIGN KEY (code_offer) REFERENCES offer(code_offer)
 );
