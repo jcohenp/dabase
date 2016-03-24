@@ -118,6 +118,9 @@ JOIN  type_transport ON type_transport.code_transport = line.code_transport
 JOIN contained ON line.code_line = contained.code_line GROUP BY type_transport.name, line.code_line, type_transport.avg_interval;
 
 
+
+
+
 CREATE OR REPLACE view view_a_station_capacity(station, capacity) AS
 
 SELECT name_station, capacity FROM station, type_transport WHERE LEFT(name_station, 1) = 'r' AND type_transport.code_transport = station.code_transport GROUP BY station.name_station, type_transport.capacity;
