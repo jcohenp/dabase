@@ -20,8 +20,8 @@ BEGIN
   INSERT INTO person
   VALUES (add_person.email, add_person.firstname, add_person.lastname, add_person.phone, add_person.address, add_person.town, DEFAULT);
   RETURN true;
-  EXCEPTION WHEN others THEN
-    RETURN false;
+  --EXCEPTION WHEN others THEN
+  --  RETURN false;
 END;
 $$ language plpgsql;
 
