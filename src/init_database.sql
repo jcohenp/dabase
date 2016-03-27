@@ -60,7 +60,7 @@ CREATE TABLE bill (
   amount              FLOAT NOT NULL,
   email               VARCHAR(128) NOT NULL,
   PRIMARY KEY (id_bill),
-  FOREIGN KEY (email) REFERENCES person(email)
+  FOREIGN KEY (email) REFERENCES person(email) on update cascade
 );
 CREATE TABLE journey (
   time_start          DATE  NOT NULL,   --date_stamp
@@ -91,7 +91,7 @@ CREATE TABLE contrat (
   email               VARCHAR(128) NOT NULL,
   id_service          SERIAL NOT NULL,
   PRIMARY KEY (id_contrat),
-  FOREIGN KEY (email) REFERENCES person(email),
+  FOREIGN KEY (email) REFERENCES person(email) on update cascade,
   FOREIGN KEY (id_service) REFERENCES service(id_service)
 );
 
@@ -111,6 +111,6 @@ CREATE TABLE subscription (
   email               VARCHAR(128) NOT NULL,
   code_offer          VARCHAR(5) NOT NULL,
   PRIMARY KEY (id_subscription),
-  FOREIGN KEY (email) REFERENCES person(email),
+  FOREIGN KEY (email) REFERENCES person(email) on update cascade,
   FOREIGN KEY (code_offer) REFERENCES offer(code_offer)
 );
