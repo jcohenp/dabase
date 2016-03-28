@@ -9,6 +9,8 @@ DROP VIEW IF EXISTS view_nb_employees_per_service CASCADE;
 
 
 DROP FUNCTION IF EXISTS list_login_employee(DATE);
+DROP FUNCTION IF EXISTS list_not_employee(DATE);
+DROP FUNCTION IF EXISTS list_subscription_history(VARCHAR(128))
 
 CREATE OR REPLACE FUNCTION add_service(VARCHAR(32),INT)
 RETURNS BOOLEAN AS
@@ -179,6 +181,50 @@ for login_ IN SELECT login from person JOIN contrat ON person.email = contrat.em
 LOOP
 RETURN NEXT login_;
 END LOOP;
-RETURN;
+RETURN; 
 END;
 $$ language plpgsql;
+
+CREATE OR REPLACE FUNCTION list_not_employee(date_service DATE)
+RETURNS TABLE(lastname VARCHAR(32), firstname VARCHAR(32), has_worked TEXT) AS
+$$
+DECLARE
+var_r record;
+BEGIN
+
+for var_r IN SELECT person.lastname, person.firstname, has_worked from person ORDER BY has_worked, person.lastname, person.firstname
+LOOP
+  lastname = var_r.lastname;
+  firstname = var_r.firstname;
+  PERFORM * from person WHERE person.login IS NULL 
+                        AND person.lastname = list_not_employee.lastname
+                        AND person.firstname = list_not_employee.firstname;
+  IF (FOUND = true) THEN
+      var_r.has_worked = 'YES';
+      has_worked = var_r.has_worked;
+      RETURN NEXT;
+  ELSE
+  PERFORM * FROM person JOIN contrat ON person.email = contrat.email WHERE
+                         (list_not_employee.date_service < contrat.hire_date)
+                         OR (list_not_employee.date_service > contrat.departure_date
+                         AND contrat.departure_date IS NOT NULL);
+      IF (FOUND = true) THEN
+        var_r.has_worked = 'YES';
+      ELSE
+        var_r.has_worked = 'NO';
+  END IF;
+    has_worked = var_r.has_worked;
+  RETURN NEXT;
+  END IF;
+END LOOP;
+END;
+$$ language plpgsql;
+
+CREATE OR REPLACE FUNCTION list_subscription_history(email VARCHAR(128))
+RETURNS TABLE(type TEXT, name VARCHAR, start_date DATE, duration INTERVAL) AS
+$$
+BEGIN
+
+END;
+$$ language plpgsql;
+
