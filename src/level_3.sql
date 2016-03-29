@@ -10,7 +10,7 @@ DROP VIEW IF EXISTS view_nb_employees_per_service CASCADE;
 
 DROP FUNCTION IF EXISTS list_login_employee(DATE);
 DROP FUNCTION IF EXISTS list_not_employee(DATE);
-DROP FUNCTION IF EXISTS list_subscription_history(VARCHAR(128))
+DROP FUNCTION IF EXISTS list_subscription_history(VARCHAR(128));
 
 CREATE OR REPLACE FUNCTION add_service(VARCHAR(32),INT)
 RETURNS BOOLEAN AS
@@ -223,8 +223,44 @@ $$ language plpgsql;
 CREATE OR REPLACE FUNCTION list_subscription_history(email VARCHAR(128))
 RETURNS TABLE(type TEXT, name VARCHAR, start_date DATE, duration INTERVAL) AS
 $$
+DECLARE
+var_r record;
 BEGIN
+PERFORM * from person JOIN subscription ON person.email = subscription.email;
+IF (FOUND = true) THEN 
+for var_r IN SELECT type, offer.name_offer, date_hire, duration FROM subscription JOIN offer ON offer.code_offer = subscription.code_offer WHERE subscription.email = list_subscription_history.email
+LOOP
+  var_r.type = 'sub';
+  type = var_r.type;
+  name = var_r.name_offer;
+  start_date = var_r.date_hire;
+  var_r.duration := (SELECT interval ' 1 day' * offer.nb_month * 12 FROM offer JOIN subscription 
+                     ON offer.code_offer = subscription.code_offer
+                     WHERE subscription.email = list_subscription_history.email);
+  duration = var_r.duration AS NUMERIC;
+  RETURN NEXT;
+END LOOP;
+END IF;
+PERFORM * from person JOIN contrat ON person.email = contrat.email;
+IF (FOUND = true) THEN 
 
+for var_r IN SELECT type, service.name_service, hire_date, duration FROM contrat JOIN service ON contrat.id_service = service.id_service WHERE contrat.email = list_subscription_history.email
+LOOP
+  var_r.type = 'ctr';
+  type = var_r.type;
+  name = var_r.name_service;
+  start_date = var_r.hire_date;
+  PERFORM * FROM contrat WHERE contrat.departure_date IS NOT NULL;
+  IF (FOUND = true) THEN
+    var_r.duration := (SELECT interval '1 day' * (extract(year from age(contrat.departure_date,contrat.hire_date)) * 365
+                             + extract(month from age(contrat.departure_date, contrat.hire_date)) * 12
+                             + extract(day from age(contrat.departure_date, contrat.hire_date)))
+                               from contrat WHERE contrat.email = list_subscription_history.email); 
+    duration = var_r.duration;
+  END IF; 
+  RETURN NEXT;
+END LOOP;
+END IF;
 END;
 $$ language plpgsql;
 
