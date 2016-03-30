@@ -10,6 +10,8 @@ DROP TABLE IF EXISTS contrat CASCADE;
 DROP TABLE IF EXISTS service CASCADE;
 DROP TABLE IF EXISTS contained CASCADE;
 DROP TABLE IF EXISTS subscription CASCADE;
+DROP TABLE IF EXISTS offer_t CASCADE;
+DROP TABLE IF EXISTS status_t CASCADE;
 
 
 CREATE TABLE type_transport (
@@ -63,11 +65,15 @@ CREATE TABLE bill (
   FOREIGN KEY (email) REFERENCES person(email) on update cascade
 );
 CREATE TABLE journey (
-  time_start          DATE  NOT NULL,   --date_stamp
-  time_end            DATE  NOT NULL,   --date_stamp
-  id_station          INTEGER NOT NULL,
-  PRIMARY KEY (time_start),
-  FOREIGN KEY (id_station) REFERENCES station(id_station)
+  id_journey          SERIAL,
+  time_start          TIMESTAMP  NOT NULL,
+  time_end            TIMESTAMP  NOT NULL,
+  station_start       INT NOT NULL,
+  station_end         INT NOT NULL,
+  email               VARCHAR(128) NOT NULL,
+  PRIMARY KEY (id_journey),
+  FOREIGN KEY (station_start) REFERENCES station(id_station),
+  FOREIGN KEY (email) REFERENCES person(email)
 );
 CREATE TABLE offer (
   code_offer          VARCHAR(5) NOT NULL UNIQUE,
@@ -113,4 +119,23 @@ CREATE TABLE subscription (
   PRIMARY KEY (id_subscription),
   FOREIGN KEY (email) REFERENCES person(email) on update cascade,
   FOREIGN KEY (code_offer) REFERENCES offer(code_offer)
+);
+
+CREATE TABLE offer_t(
+  id_offer_t    SERIAL,
+  code_offer_t  VARCHAR(5) NOT NULL,
+  date_t        timestamp NOT NULL,
+  old_price_t   FLOAT NOT NULL,
+  new_price_t   FLOAT NOT NULL,
+  PRIMARY KEY (id_offer_t)
+);
+
+CREATE TABLE status_t(
+  id_status_t           SERIAL,
+  email                 VARCHAR(128) NOT NULL,
+  subscription_code_t   VARCHAR(5) NOT NULL,
+  date_t                TIMESTAMP NOT NULL,
+  old_status_t          VARCHAR(32) NOT NULL,
+  new_status_t          VARCHAR(32) NOT NULL,
+  PRIMARY KEY (id_status_t)
 );
