@@ -74,13 +74,13 @@ END LOOP;
 END;
 $$ language plpgsql;
 
-CREATE OR REPLACE FUNCTION update_status(num INT, email VARCHAR(128), new_status VARCHAR(32))
+CREATE OR REPLACE FUNCTION update_status(num INT, new_status VARCHAR(32))
 RETURNS BOOLEAN AS
 $$
 DECLARE
-  status_ VARCHAR(32) := (SELECT register FROM subscription WHERE subscription.id_subscription = update_status.num AND subscription.email = update_status.email);
+  status_ VARCHAR(32) := (SELECT register FROM subscription WHERE subscription.id_subscription = update_status.num);
 BEGIN
-    IF (update_status.new_status = 'Registred' OR  update_status.new_status = 'Incomplete' OR update_status.new_status = 'Pending') THEN
+    IF ((update_status.new_status = 'Registred' OR  update_status.new_status = 'Incomplete' OR update_status.new_status = 'Pending') AND update_status.num = subscription.id_subscription) THEN
     UPDATE subscription
     SET register = update_status.new_status
     WHERE subscription.id_subscription = update_status.num;
@@ -108,8 +108,8 @@ IF (update_offer_price.price > 0) THEN
   RETURN true;
 END IF;
 RETURN false;
-EXCEPTION WHEN others THEN
-RETURN false;
+--EXCEPTION WHEN others THEN
+--RETURN false;
 END;
 $$ language plpgsql;
 
