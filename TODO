@@ -3,3 +3,7 @@
 -Create table ------------------------ Done
 -Create file with data --------------- Done
 -Implement threeshold 1 --------------
+
+question add_station : 
+
+Peut on avoir 2 stations avec un ID différent, nom identique et transport_type identique
