@@ -17,7 +17,7 @@ CREATE OR REPLACE FUNCTION add_transport_type(code VARCHAR(3), name VARCHAR (32)
 RETURNS BOOLEAN AS
 $$
 BEGIN
-  IF (add_transport_type.capacity < 0 AND add_transport_type.avg_interval < 0) THEN
+  IF (add_transport_type.capacity < 0 OR add_transport_type.avg_interval < 0) THEN
     RETURN false;
   END IF;
   INSERT INTO type_transport
