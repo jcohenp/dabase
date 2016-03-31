@@ -49,7 +49,7 @@ CREATE TABLE station (
   name_station        VARCHAR(64) NOT NULL,
   town                VARCHAR(32) NOT NULL,
   code_transport      VARCHAR(3) NOT NULL,
-  id_zone             INTEGER,
+  id_zone             INTEGER NOT NULL,
   PRIMARY KEY (id_station),
   FOREIGN KEY (code_transport) REFERENCES type_transport(code_transport),
   FOREIGN KEY (id_zone) REFERENCES zone(id_zone)
