@@ -1,18 +1,4 @@
-DROP FUNCTION IF EXISTS add_service(VARCHAR(32), INT);
-DROP FUNCTION IF EXISTS add_contract(VARCHAR(128), DATE, VARCHAR(32));
-DROP FUNCTION IF EXISTS end_contract(VARCHAR(128), DATE);
-DROP FUNCTION IF EXISTS update_service(VARCHAR(32), INT);
-DROP FUNCTION IF EXISTS update_employee_mail(VARCHAR(8),VARCHAR(128));
-
-DROP VIEW IF EXISTS view_employees CASCADE;
-DROP VIEW IF EXISTS view_nb_employees_per_service CASCADE;
-
-
-DROP FUNCTION IF EXISTS list_login_employee(DATE);
-DROP FUNCTION IF EXISTS list_not_employee(DATE);
-DROP FUNCTION IF EXISTS list_subscription_history(VARCHAR(128));
-
-CREATE OR REPLACE FUNCTION add_service(VARCHAR(32),INT)
+CREATE OR REPLACE FUNCTION add_service(name VARCHAR(32), discount INT)
 RETURNS BOOLEAN AS
 $$
 BEGIN
@@ -33,9 +19,9 @@ RETURNS BOOLEAN AS
 $$
 DECLARE
 iterator INT := 97;
-lastname_ VARCHAR(6) := (SELECT LOWER(LEFT(lastname, 6)) from person WHERE person.email = add_contract.email);
+lastname_ VARCHAR(32);
 firstname_ VARCHAR(1) := (SELECT LOWER(LEFT(firstname, 1)) from person WHERE person.email = add_contract.email);
-login_ VARCHAR(8) := (lastname_ || '_' || firstname_);
+login_ VARCHAR(8);
 id_service_ INT := (SELECT id_service from service WHERE add_contract.service = service.name_service);
 name_service_ VARCHAR(32):= (SELECT service.name_service FROM service WHERE service.name_service = add_contract.service);
 email_ VARCHAR(32):= (SELECT person.email FROM person WHERE person.email = add_contract.email);
@@ -48,6 +34,16 @@ PERFORM * from contrat WHERE name_service_ IS  NULL
 IF (FOUND = true) THEN
   RETURN false;
 END IF;
+
+lastname_ := (SELECT LOWER(lastname) from person WHERE person.email = add_contract.email);
+
+PERFORM * from person WHERE person.email = add_contract.email;
+  IF (FOUND = true AND strpos(lastname_, ' ') != 0) THEN
+    lastname_ := (select LOWER(replace(lastname_, ' ', '')));
+  END IF; 
+  lastname_ := LEFT(lastname_, 6);
+  login_ := (lastname_ || '_' || firstname_);
+
 PERFORM * from contrat WHERE contrat.email = add_contract.email;
 IF (FOUND = false) THEN
     PERFORM * FROM person WHERE person.login = login_;
@@ -60,11 +56,6 @@ IF (FOUND = false) THEN
       WHERE person.email = add_contract.email AND person.login IS NULL;
             RETURN true;
     ELSE
-      PERFORM * from person WHERE person.email = add_contract.email;
-      IF (FOUND = true AND strpos(lastname_, ' ') != 0) THEN
-        lastname_ := (select LOWER(replace(lastname_, ' ', '')));
-      END IF; 
-      login_ := (lastname_ || '_' || firstname_);
 
       LOOP
       firstname_ := (CAST(chr(iterator) AS VARCHAR(1)));
@@ -84,7 +75,7 @@ IF (FOUND = false) THEN
       RETURN true;
       END IF;
 ELSE
-PERFORM * from contrat WHERE(add_contract.date_beginning > max_ AND contrat.email = add_contract.email)
+PERFORM * from contrat WHERE(add_contract.date_beginning >= max_ AND contrat.email = add_contract.email)
                           OR (contrat.departure_date IS  NULL AND contrat.email = add_contract.email);
  IF (FOUND = true) THEN
   PERFORM * FROM contrat WHERE id_contrat IN (SELECT id_contrat FROM contrat WHERE departure_date IS NULL) AND contrat.email = add_contract.email;
@@ -128,7 +119,7 @@ RETURNS BOOLEAN AS
 $$
 BEGIN
 PERFORM * from service WHERE name_service = update_service.name;
-IF (FOUND = true AND update_service.discount > 0) THEN
+IF (FOUND = true AND (update_service.discount >= 0 AND update_service.discount <= 100)) THEN
   UPDATE service
   SET discount = update_service.discount
   WHERE service.name_service = update_service.name;
@@ -162,7 +153,11 @@ $$ language plpgsql;
 
 CREATE OR REPLACE view view_employees(lastname, firstname, login, service) AS
 
-SELECT lastname, firstname, login, name_service FROM contrat JOIN service ON contrat.id_service = service.id_service join person on contrat.email = person.email ORDER BY lastname;
+SELECT lastname, firstname, login, name_service FROM contrat 
+JOIN service ON contrat.id_service = service.id_service join person on contrat.email = person.email
+WHERE contrat.hire_date <= current_date AND (contrat.departure_date >= current_date OR contrat.departure_date IS NULL)
+GROUP BY lastname, firstname, login, name_service
+ORDER BY lastname;
 
 
 CREATE OR REPLACE view view_nb_employees_per_service(service,nb) AS
@@ -177,7 +172,10 @@ $$
 DECLARE
 login_ VARCHAR(8);
 BEGIN
-for login_ IN SELECT login from person JOIN contrat ON person.email = contrat.email WHERE contrat.hire_date <= list_login_employee.date_service AND (contrat.departure_date >= list_login_employee.date_service OR departure_date IS NULL)
+for login_ IN SELECT login from person JOIN contrat ON person.email = contrat.email WHERE contrat.hire_date <= list_login_employee.date_service
+AND (contrat.departure_date >= list_login_employee.date_service OR departure_date IS NULL)
+GROUP BY person.login
+ORDER BY person.login
 LOOP
 RETURN NEXT login_;
 END LOOP;
@@ -191,20 +189,20 @@ $$
 BEGIN
 
 IF (list_not_employee.date_service IS NULL) THEN
-  RETURN QUERY SELECT person.lastname, person.firstname, TEXT 'NO' as has_worked from person WHERE person.login IS NULL ORDER BY has_worked, person.lastname, person.firstname;
+  RETURN QUERY SELECT person.lastname, person.firstname, TEXT 'NO' as has_worked from person WHERE person.login IS NULL ORDER BY has_worked DESC, person.lastname, person.firstname;
 ELSE
   RETURN QUERY SELECT person.lastname, person.firstname,
                 CASE WHEN person.login IS NULL
-                  THEN 'YES'
-                  ELSE 'NO'
+                  THEN 'NO'
+                  ELSE 'YES'
                 END AS has_worked
                 FROM person
                 WHERE person.email
                 NOT IN (SELECT contrat.email from contrat 
-                WHERE list_not_employee.date_service > contrat.hire_date
-                AND(list_not_employee.date_service < contrat.departure_date 
+                WHERE list_not_employee.date_service >= contrat.hire_date
+                AND(list_not_employee.date_service <= contrat.departure_date 
                 OR contrat.departure_date IS NULL))
-                ORDER BY has_worked, person.lastname, person.firstname;
+                ORDER BY has_worked DESC, person.lastname, person.firstname;
 END IF;
 END;
 $$ language plpgsql;
@@ -212,44 +210,24 @@ $$ language plpgsql;
 CREATE OR REPLACE FUNCTION list_subscription_history(email VARCHAR(128))
 RETURNS TABLE(type TEXT, name VARCHAR, start_date DATE, duration INTERVAL) AS
 $$
-DECLARE
-var_r record;
 BEGIN
-PERFORM * from person JOIN subscription ON person.email = subscription.email;
-IF (FOUND = true) THEN 
-for var_r IN SELECT type, offer.name_offer, date_hire, duration FROM subscription JOIN offer ON offer.code_offer = subscription.code_offer WHERE subscription.email = list_subscription_history.email
-LOOP
-  var_r.type = 'sub';
-  type = var_r.type;
-  name = var_r.name_offer;
-  start_date = var_r.date_hire;
-  var_r.duration := (SELECT interval ' 1 day' * offer.nb_month * 12 FROM offer JOIN subscription 
-                     ON offer.code_offer = subscription.code_offer
-                     WHERE subscription.email = list_subscription_history.email);
-  duration = var_r.duration AS NUMERIC;
-  RETURN NEXT;
-END LOOP;
-END IF;
-PERFORM * from person JOIN contrat ON person.email = contrat.email;
-IF (FOUND = true) THEN 
+RETURN QUERY SELECT TEXT 'sub', offer.name_offer, subscription.date_hire as start_date , (subscription.date_hire + (offer.nb_month || 'month')::interval) - subscription.date_hire
+FROM subscription
+JOIN offer ON subscription.code_offer = offer.code_offer
+WHERE subscription.email = list_subscription_history.email 
+AND subscription.register = 'Registered'
 
-for var_r IN SELECT type, service.name_service, hire_date, duration FROM contrat JOIN service ON contrat.id_service = service.id_service WHERE contrat.email = list_subscription_history.email
-LOOP
-  var_r.type = 'ctr';
-  type = var_r.type;
-  name = var_r.name_service;
-  start_date = var_r.hire_date;
-  PERFORM * FROM contrat WHERE contrat.departure_date IS NOT NULL;
-  IF (FOUND = true) THEN
-    var_r.duration := (SELECT interval '1 day' * (extract(year from age(contrat.departure_date,contrat.hire_date)) * 365
-                             + extract(month from age(contrat.departure_date, contrat.hire_date)) * 12
-                             + extract(day from age(contrat.departure_date, contrat.hire_date)))
-                               from contrat WHERE contrat.email = list_subscription_history.email); 
-    duration = var_r.duration;
-  END IF; 
-  RETURN NEXT;
-END LOOP;
-END IF;
+UNION
+SELECT TEXT 'ctr', service.name_service, contrat.hire_date, (contrat.departure_date - contrat.hire_date || 'day')::interval + '1 day'
+FROM contrat
+JOIN service ON service.id_service = contrat.id_service
+WHERE contrat.email = list_subscription_history.email
+ORDER BY start_date;
+
 END;
-$$ language plpgsql;
+$$ language plpgsql
+
+
+
+
 

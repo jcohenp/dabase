@@ -1,23 +1,8 @@
-DROP FUNCTION IF EXISTS add_transport_type(VARCHAR(3), VARCHAR(32), INT, INT);
-DROP FUNCTION IF EXISTS add_zone(VARCHAR(32), FLOAT);
-DROP FUNCTION IF EXISTS add_station(INT, VARCHAR(64), VARCHAR(32), INT, VARCHAR(3));
-DROP FUNCTION IF EXISTS add_line(VARCHAR(3), VARCHAR(3));
-DROP FUNCTION IF EXISTS add_station_to_line(INT, VARCHAR(3), INT);
-
-DROP VIEW IF EXISTS  view_transport_50_300_users CASCADE ;
-DROP VIEW IF EXISTS  view_nb_station_type CASCADE ;
-DROP VIEW IF EXISTS  view_line_duration CASCADE ;
-DROP VIEW IF EXISTS  view_a_station_capacity CASCADE ;
-
-DROP FUNCTION IF EXISTS list_station_in_line(VARCHAR(3));
-DROP FUNCTION IF EXISTS list__type_in_zone(INT);
-DROP FUNCTION IF EXISTS get_cost_travel(INT, INT);
-
 CREATE OR REPLACE FUNCTION add_transport_type(code VARCHAR(3), name VARCHAR (32), capacity INT, avg_interval INT)
 RETURNS BOOLEAN AS
 $$
 BEGIN
-  IF (add_transport_type.capacity < 0 OR add_transport_type.avg_interval < 0) THEN
+  IF (add_transport_type.capacity <= 0 OR add_transport_type.avg_interval <= 0) THEN
     RETURN false;
   END IF;
   INSERT INTO type_transport
@@ -31,12 +16,15 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION add_zone(name VARCHAR(32), price FLOAT)
 RETURNS BOOLEAN AS
 $$
+DECLARE
+new_price FLOAT := (round(cast(add_zone.price as numeric), 2));
 BEGIN
-  IF ( add_zone.price < 0) THEN 
+
+  IF ( new_price <= 0) THEN 
     RETURN false;
   END IF; 
   INSERT INTO zone
-  VALUES (DEFAULT, round(cast(add_zone.price as numeric), 2), add_zone.name);
+  VALUES (DEFAULT, new_price, add_zone.name);
   RETURN true;
   EXCEPTION WHEN others THEN
   RETURN false;
@@ -92,38 +80,43 @@ END
 $$ language plpgsql;
 
 
-CREATE OR REPLACE view view_transport_50_300_users AS
+CREATE OR REPLACE view view_transport_50_300_users(transport) AS
 
 SELECT name FROM type_transport WHERE capacity >= 50 AND capacity <= 300 ORDER BY name;
 
 
-CREATE OR REPLACE view view_stations_from_villejuif AS
+CREATE OR REPLACE view view_stations_from_villejuif(station) AS
 
 SELECT name_station FROM station WHERE town = 'Villejuif' ORDER BY name_station;
 
 
-CREATE OR REPLACE view view_stations_zones AS
+CREATE OR REPLACE view view_stations_zones(station, zone) AS
 
 SELECT name_station, name_zone FROM station JOIN zone ON station.id_zone = zone.id_zone ORDER BY name_zone, name_station;
 
 
 CREATE OR REPLACE view view_nb_station_type(type, station) AS
 
-SELECT type_transport.name, count(station.id_station) FROM type_transport, station WHERE type_transport.code_transport = station.code_transport GROUP BY type_transport.name ORDER BY count(station.id_station) DESC , type_transport.name;
+SELECT type_transport.name, count(station.id_station) FROM type_transport 
+LEFT JOIN station ON station.code_transport = type_transport.code_transport
+GROUP BY type_transport.name 
+ORDER BY count(station.id_station) DESC , type_transport.name;
  
 CREATE OR REPLACE view view_line_duration(type, line, minutes) AS
 
-SELECT type_transport.name, line.code_line, count(contained.id_station - 1) * type_transport.avg_interval FROM line
-JOIN  type_transport ON type_transport.code_transport = line.code_transport
-JOIN contained ON line.code_line = contained.code_line GROUP BY type_transport.name, line.code_line, type_transport.avg_interval;
-
-
-
+SELECT type_transport.name, line.code_line, count(*) * type_transport.avg_interval - type_transport.avg_interval FROM line
+LEFT JOIN  type_transport ON type_transport.code_transport = line.code_transport
+LEFT JOIN contained ON line.code_line = contained.code_line
+GROUP BY type_transport.name, line.code_line, type_transport.avg_interval
+ORDER BY type_transport.name, line.code_line;
 
 
 CREATE OR REPLACE view view_a_station_capacity(station, capacity) AS
 
-SELECT name_station, capacity FROM station, type_transport WHERE LEFT(name_station, 1) = 'r' AND type_transport.code_transport = station.code_transport GROUP BY station.name_station, type_transport.capacity;
+SELECT name_station, capacity FROM station, type_transport 
+WHERE LEFT(LOWER(name_station), 1) = 't'
+AND type_transport.code_transport = station.code_transport 
+ORDER BY station.name_station, type_transport.capacity;
 
 
 
@@ -134,7 +127,9 @@ DECLARE
   string VARCHAR(32);
 BEGIN
 for string in SELECT name_station FROM station
-JOIN contained ON contained.id_station = station.id_station AND  list_station_in_line.line_code = contained.code_line ORDER BY contained.pos
+JOIN contained ON contained.id_station = station.id_station
+AND list_station_in_line.line_code = contained.code_line 
+ORDER BY contained.pos
 LOOP
 RETURN NEXT string;
 END LOOP;
@@ -142,19 +137,17 @@ RETURN;
 END;
 $$ language plpgsql;
 
-CREATE OR REPLACE FUNCTION list_type_in_zone(zone INT)
+CREATE OR REPLACE FUNCTION list_types_in_zone(zone INT)
 RETURNS setof VARCHAR(32) AS
 $$
-DECLARE
-  string VARCHAR(32);
 BEGIN
-for string in SELECT name FROM zone
-JOIN station ON station.id_zone = zone.id_zone
-JOIN type_transport ON zone.id_zone = list_type_in_zone.zone GROUP BY  station.id_zone, type_transport.name ORDER BY type_transport.name
-LOOP
-RETURN NEXT string;
-END LOOP;
-RETURN;
+
+RETURN QUERY SELECT name FROM type_transport JOIN station
+ON type_transport.code_transport = station.code_transport
+WHERE station.id_zone = list_types_in_zone.zone
+GROUP BY type_transport.name
+ORDER BY type_transport.name;
+
 END;
 $$ language plpgsql;
 
@@ -164,21 +157,22 @@ RETURNS FLOAT AS
 $$
 DECLARE
 
+  station_start_ FLOAT := (SELECT  zone.price FROM zone
+  JOIN station ON zone.id_zone = station.id_zone WHERE station.id_station = get_cost_travel.station_start);
+
   station_end_ FLOAT := (SELECT  zone.price FROM zone
-  JOIN station ON station.id_station = get_cost_travel.station_end AND station.id_zone = zone.id_zone);
-
-  station_start_ FLOAT := (SELECT zone.price FROM zone
-  JOIN station ON station.id_station = get_cost_travel.station_start AND station.id_zone = zone.id_zone);
+  JOIN station ON zone.id_zone = station.id_zone WHERE station.id_station = get_cost_travel.station_end);
 
 
+  zone_start_ INT := (SELECT station.id_zone FROM station WHERE get_cost_travel.station_start = station.id_station);
 
+  zone_end_ INT := (SELECT station.id_zone FROM station WHERE get_cost_travel.station_end = station.id_station);
+
+price FLOAT := (SELECT sum(zone.price) FROM zone WHERE zone.id_zone BETWEEN zone_start_ AND zone_end_ OR zone.id_zone BETWEEN zone_end_ AND zone_start_);
 BEGIN
-
-IF ($1 != $2) THEN
-  RETURN station_start_ + station_end_;
-END IF;
+IF (station_start_ IS NULL OR station_end_ IS NULL) THEN
   RETURN 0;
-EXCEPTION WHEN others THEN
-RETURN 0;
+END IF;
+RETURN price;
 END;
 $$ language plpgsql;

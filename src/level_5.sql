@@ -1,9 +1,6 @@
 DROP FUNCTION IF EXISTS store_offer_updates() CASCADE;
 DROP FUNCTION IF EXISTS store_status_updates() CASCADE;
 
-DROP VIEW IF EXISTS view_offer_updates CASCADE;
-DROP VIEW IF EXISTS view_status_updates CASCADE;
-
 CREATE OR REPLACE FUNCTION store_offer_updates()
 RETURNS TRIGGER AS
 $$
@@ -32,7 +29,7 @@ RETURN NEW;
 END;
 $$ language plpgsql;
 
-CREATE TRIGGER store_status_updates
+CREATE  TRIGGER store_status_updates
   AFTER UPDATE ON subscription
   FOR EACH ROW
   WHEN (OLD.register IS DISTINCT FROM NEW.register)

@@ -73,16 +73,19 @@ CREATE TABLE journey (
   email               VARCHAR(128) NOT NULL,
   PRIMARY KEY (id_journey),
   FOREIGN KEY (station_start) REFERENCES station(id_station),
+  FOREIGN KEY (station_end) REFERENCES station(id_station),
   FOREIGN KEY (email) REFERENCES person(email)
 );
 CREATE TABLE offer (
   code_offer          VARCHAR(5) NOT NULL UNIQUE,
-  name_offer          VARCHAR(32) NOT NULL UNIQUE,
+  name_offer          VARCHAR(32) NOT NULL,
   price               FLOAT NOT NULL,
   nb_month            INTEGER NOT NULL,
-  id_zone             INTEGER,
+  zone_from           INTEGER NOT NULL,
+  zone_to             INTEGER NOT NULL,
   PRIMARY KEY (code_offer),
-  FOREIGN KEY (id_zone) REFERENCES zone(id_zone)
+  FOREIGN KEY (zone_from) REFERENCES zone(id_zone),
+  FOREIGN KEY (zone_to) REFERENCES zone(id_zone)
 );
 CREATE TABLE service (
   id_service          SERIAL NOT NULL,
