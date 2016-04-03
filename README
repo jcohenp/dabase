@@ -1,1 +1,52 @@
------------README----------
+-------------------------------------------------------------------------------------
+                                        README
+-------------------------------------------------------------------------------------
+
+In this project we have to create a public transportation data base
+
+First we have create a MCD for manage our differents table in this project
+
+[Threshold 1]
+
+  - Implementation add_transport_type function who permit to add a transport type in the data base
+  - Implementation add_zone function who permit adding severals zones whith differents prices
+  - add_station function who permit to add station in my data base
+  - add_line function for add severals lines
+  - add_station_to_line for link station in differents lines
+  - view_transport_50_300 users who permit to display every type of transport who this capacity contained in 50 and 300 persons
+  - view_stations_from_villejuif view who permit to display all station in villejuif town
+  - view_stations_zones who permet to knwo what station belong to what zone
+
+[Threshold 2]
+
+  - add_person function permit to add person who travel in the data base
+  - add_offer function permit to add offer for subcribers
+  - add_subscription function permit to add people in differents offer
+  - update_station permit to update status of the subcription
+  - update_offer_ice permit to update price for a givven offer
+  - view_user_small_name permit to display person whith lenght of lastname <= 4
+  - view_unlover_offers permit to display offer that not have subscription
+  
+
+[Threshold 3]
+
+  - add_service function permit to add service in public transport
+  - add_contract function permit to add contracts for an hire
+  - end_contract function permit to give a date for a end contract
+  - update service function permit tu update service
+  - update_employee_mail permit to update email for employee
+  - view_employees view permit to display all emplpoyee who work currently in the society
+  - view_nb_employee_per_service permit to count number employee in a specific servic
+  - list_login_employee permit ti list login of employee 
+  - list_not_employee permit to list all employee who have not work for a giver date
+
+[Treshold 4]
+
+  - add_journey function permit to add a journey of a traveler
+
+[Threshold 5]
+
+  - store_offer_updates permit to store data on a update_offer
+  - store_status_updates permit to store data on a status_updates
+  - view_offer_updates view permit to display data on offer_update
+  - view_status_updates view permit to display data on status_update
