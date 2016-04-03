@@ -1,9 +1,87 @@
-------------TODO-----------
+-------------------------------------------------------------------------
+                               TODO
+-------------------------------------------------------------------------
 
--Create table ------------------------ Done
--Create file with data --------------- Done
--Implement threeshold 1 --------------
+
+-Create table -------------------------------------------------------Done
+-Create file with data ----------------------------------------------Done
+
+[Treshold 1]
+  add_transport_type-------------------------------------------------Done
+  add_zone-----------------------------------------------------------Done
+  add_station--------------------------------------------------------Done
+  add_line-----------------------------------------------------------Done
+  add_station_to_line------------------------------------------------Done
+  view_transport_50_300_users----------------------------------------Done
+  view_stations_from_villejuif---------------------------------------Done
+  view_stations_zones------------------------------------------------Done
+  view_nb_station_type-----------------------------------------------Done
+  view_line_duration-------------------------------------------------Done
+  view_a_station_capacity--------------------------------------------Done
+  list_station_in_line-----------------------------------------------Done
+  list_types_in_zone-------------------------------------------------Done
+  get_cost_travel----------------------------------------------------Done
+
+[Treshold 2]
+  add_person---------------------------------------------------------Done
+  add_offer----------------------------------------------------------Done
+  add_subscription---------------------------------------------------Done
+  update_status------------------------------------------------------Done
+  update_offer_price-------------------------------------------------Done
+  view_user_small_name-----------------------------------------------Done
+  view_unloved_offers------------------------------------------------Done
+  view_user_subscriptionview_pending_subscriptions-------------------Done
+  view_old_subscription----------------------------------------------Done
+  list_station_near_user---------------------------------------------Done
+  list_subscribers---------------------------------------------------Done
+  list_subscription--------------------------------------------------Done
+
+[Threshold 3]
+  add_service--------------------------------------------------------Done
+  add_contract-------------------------------------------------------Done
+  end_contract-------------------------------------------------------Done
+  update_service-----------------------------------------------------Done
+  update_employee_mail-----------------------------------------------Done
+  view_employees-----------------------------------------------------Done
+  view_nb_employees_per_service--------------------------------------Done
+  list_login_employee------------------------------------------------Done
+  list_not_employee--------------------------------------------------Done
+  list_subscription_history------------------------------------------Done
+
+[Threshold 4]
+  add_journey--------------------------------------------------------Done
+
+[Threshold 5]
+  store_offer_updates------------------------------------------------Done
+  store_status_updates-----------------------------------------------Done
+  view_offer_updates-------------------------------------------------Done
+  view_status_updates------------------------------------------------Done
+
+Create test suite----------------------------------------------------Done
+
+
 
 question add_station : 
 
-Peut on avoir 2 stations avec un ID différent, nom identique et transport_type identique
+Peut on avoir 2 stations avec un ID différent, nom identique et transport_type identique --------------------------------------------OUI
+
+question add_station_to_line :
+
+Peut on ajouter une station a une position quelconque sur la ligne tant que cette position n'est pas utilsé par une autre station----OUI
+
+Question add_person :
+
+Peut on avoir zipcode a NULL, et un num de téléphone comprend peut contenir des caractères -------------------------------------------NON
+
+question add_offer :
+
+comment géré le cas d'un insert de zone to et zone_from dans ma table-----------------------------------------------------------------modification table offer
+
+
+2eme view palier 1 :
+
+  Impossible de modifier nom dans une view
+
+list_subscribers :
+
+Si le code de l'offre n'existe pas que devons nous afficher
